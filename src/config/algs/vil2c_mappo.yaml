@@ -1,0 +1,50 @@
+# --- VIL2C on MAPPO ---
+# Comm delay matches BCRBC (train 0, eval DelayModel). Obs delay: delayed_sc2.
+
+action_selector: "soft_policies"
+mask_before_softmax: True
+
+runner: "parallel"
+mac: "vil2c_mac"
+agent: "vil2c_agent"
+learner: "vil2c_learner"
+
+buffer_size: 10
+batch_size_run: 10
+batch_size: 10
+sample_times_per_run: 1
+
+target_update_interval_or_tau: 0.01
+
+lr: 0.0003
+resonet_lr: 0.00003
+hidden_dim: 128
+msg_dim: 64
+
+obs_agent_id: True
+obs_last_action: False
+obs_individual_obs: False
+
+agent_output_type: "pi_logits"
+entropy_coef: 0.01
+use_rnn: True
+standardise_returns: False
+standardise_rewards: True
+q_nstep: 5
+critic_type: "cv_critic"
+epochs: 4
+eps_clip: 0.2
+
+# --- VIL2C communication ---
+# Delay distribution matches BCRBC; progressive reception is kept; no ResoNet.
+comm_delay_type: gaussian
+comm_gaussian_delay_mean: 1.0
+comm_gaussian_delay_std: 1.0
+comm_max_delay: 16
+use_progressive: True
+max_wait_steps: 3
+entropy_threshold: 0.8
+use_resonet: False
+
+name: "vil2c_mappo"
+t_max: 20050000

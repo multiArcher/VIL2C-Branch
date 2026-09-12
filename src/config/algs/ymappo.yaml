@@ -1,0 +1,62 @@
+# YMAPPO: Yu et al. MAPPO (https://arxiv.org/abs/2103.01955)
+# Port of marlbenchmark/on-policy RMAPPO into this codebase.
+# 5m_vs_6m defaults match onpolicy/scripts/train_smac_scripts/train_smac_5m_vs_6m.sh
+
+action_selector: "ymappo_soft_policies"
+mask_before_softmax: True
+
+runner: "ymappo"
+mac: "basic_mac"
+agent: "ymappo_rnn"
+learner: "ymappo_learner"
+critic_type: "ymappo_critic"
+
+agent_output_type: "pi_logits"
+use_rnn: True
+
+# 8 parallel envs x 400-step truncated rollouts
+batch_size_run: 8
+batch_size: 8
+buffer_size: 8
+sample_times_per_run: 1
+rollout_length: 400
+data_chunk_length: 10
+num_mini_batch: 1
+
+obs_agent_id: True
+obs_last_action: False
+obs_individual_obs: False
+# AS critic: EP global state ⊕ this agent's local obs ⊕ agent id
+critic_use_local_obs: True
+use_death_mask: True
+use_feature_normalization: True
+layer_n: 1
+
+hidden_dim: 64
+lr: 0.0005
+entropy_coef: 0.01
+epochs: 10
+eps_clip: 0.05
+gamma: 0.99
+use_gae: True
+gae_lambda: 0.95
+huber_delta: 10.0
+use_clipped_value_loss: True
+use_huber_loss: True
+use_value_norm: True
+use_value_active_masks: True
+# Yu uses ValueNorm on returns only; do not also standardise rewards
+standardise_rewards: False
+standardise_returns: False
+actor_gain: 0.01
+grad_norm_clip: 10
+
+# Unused by YMAPPO (no target critic / n-step)
+target_update_interval_or_tau: 1.0
+q_nstep: 1
+
+test_greedy: True
+test_nepisode: 32
+t_max: 10000000
+
+name: "ymappo"

@@ -1,0 +1,70 @@
+# VIL2C on Yu et al. MAPPO.
+# Communication delay matches BCRBC: train delay=0, eval uses DelayModel.
+# Fixed delay: comm_gaussian_delay_std=0 and mean=d. Gaussian: mean/std as below.
+
+action_selector: "ymappo_soft_policies"
+mask_before_softmax: True
+
+runner: "ymappo"
+mac: "vil2c_mac"
+agent: "vil2c_ymappo"
+learner: "vil2c_ymappo_learner"
+critic_type: "ymappo_critic"
+
+agent_output_type: "pi_logits"
+use_rnn: True
+
+batch_size_run: 8
+batch_size: 8
+buffer_size: 8
+sample_times_per_run: 1
+rollout_length: 400
+data_chunk_length: 10
+num_mini_batch: 1
+
+obs_agent_id: True
+obs_last_action: False
+obs_individual_obs: False
+critic_use_local_obs: True
+use_death_mask: True
+use_feature_normalization: True
+layer_n: 1
+
+hidden_dim: 64
+msg_dim: 64
+lr: 0.0005
+entropy_coef: 0.01
+epochs: 10
+eps_clip: 0.05
+gamma: 0.99
+use_gae: True
+gae_lambda: 0.95
+huber_delta: 10.0
+use_clipped_value_loss: True
+use_huber_loss: True
+use_value_norm: True
+use_value_active_masks: True
+standardise_rewards: False
+standardise_returns: False
+actor_gain: 0.01
+grad_norm_clip: 10
+
+target_update_interval_or_tau: 1.0
+q_nstep: 1
+
+test_greedy: True
+test_nepisode: 32
+t_max: 6000000
+
+# Communication: BCRBC delay *distribution* (train 0, eval gaussian/fixed).
+# VIL2C progressive reception is on. ResoNet/Shannon latency is off.
+comm_delay_type: gaussian
+comm_gaussian_delay_mean: 1.0
+comm_gaussian_delay_std: 1.0
+comm_max_delay: 16
+use_progressive: True
+max_wait_steps: 3
+entropy_threshold: 0.8
+use_resonet: False
+
+name: "vil2c_ymappo"

@@ -16,6 +16,11 @@ class CriticMaker(Maker):
         return CentralVCritic(*args, **kwargs)
 
     @staticmethod
+    def make_ymappo_critic(*args, **kwargs) -> Module:
+        from modules.critics.ymappo_critic import YMAPPOCritic
+        return YMAPPOCritic(*args, **kwargs)
+
+    @staticmethod
     def make_coma_critic_ns(*args, **kwargs) -> Module:
         from modules.critics.coma_ns import COMACriticNS
         return COMACriticNS(*args, **kwargs)

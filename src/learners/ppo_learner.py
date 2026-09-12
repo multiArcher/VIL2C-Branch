@@ -6,10 +6,11 @@ from torch.optim import Adam
 
 from components.episode_buffer import EpisodeBatch
 from components.standarize_stream import RunningMeanStd
-from modules.critics import CriticMaker
+from learners.learner import Learner
+from utils.maker import CriticMaker
 
 
-class PPOLearner:
+class PPOLearner(Learner):
     def __init__(self, mac, scheme, logger, args):
         self.args = args
         self.n_agents = args.n_agents
@@ -75,6 +76,14 @@ class PPOLearner:
         old_pi_taken = th.gather(old_pi, dim=3, index=actions).squeeze(3)
         old_log_pi_taken = th.log(old_pi_taken + 1e-10)
 
+        use_gae = getattr(self.args, "use_gae", False)
+        gae_advantages = None
+        gae_returns = None
+        if use_gae:
+            gae_advantages, gae_returns = self._compute_gae_targets(
+                batch, rewards, terminated, mask
+            )
+
         for k in range(self.args.epochs):
             mac_out = []
             self.mac.init_hidden(batch.batch_size)
@@ -84,10 +93,16 @@ class PPOLearner:
             mac_out = th.stack(mac_out, dim=1)  # Concat over time
 
             pi = mac_out
-            advantages, critic_train_stats = self.train_critic_sequential(
-                self.critic, self.target_critic, batch, rewards, critic_mask
-            )
-            advantages = advantages.detach()
+            if use_gae:
+                _, critic_train_stats = self._fit_critic(
+                    gae_returns, batch, critic_mask
+                )
+                advantages = gae_advantages
+            else:
+                advantages, critic_train_stats = self.train_critic_sequential(
+                    self.critic, self.target_critic, batch, rewards, critic_mask
+                )
+                advantages = advantages.detach()
             # Calculate policy grad with mask
 
             pi[mask == 0] = 1.0
@@ -159,6 +174,80 @@ class PPOLearner:
             )
             self.log_stats_t = t_env
 
+    def _gae_from_values(self, rewards, values, terminated, mask):
+        not_done = 1.0 - terminated
+        if not_done.size(-1) == 1 and rewards.size(-1) != 1:
+            not_done = not_done.expand(-1, -1, rewards.size(-1))
+        not_done = not_done * mask
+
+        gamma = self.args.gamma
+        lam = getattr(self.args, "gae_lambda", 0.95)
+        T = rewards.size(1)
+        advantages = th.zeros_like(rewards)
+        gae = th.zeros_like(rewards[:, 0])
+        for t in reversed(range(T)):
+            delta = (
+                rewards[:, t]
+                + gamma * values[:, t + 1] * not_done[:, t]
+                - values[:, t]
+            )
+            gae = delta + gamma * lam * not_done[:, t] * gae
+            advantages[:, t] = gae * mask[:, t]
+            gae = gae * mask[:, t]
+        returns = advantages + values[:, :-1]
+        return advantages, returns
+
+    def _compute_gae_targets(self, batch, rewards, terminated, mask):
+        """GAE(λ) once per PPO update, then frozen across epochs (Yu et al.)."""
+        with th.no_grad():
+            values = self.critic(batch).squeeze(3)
+            if self.args.standardise_returns:
+                values_boot = values * th.sqrt(self.ret_ms.var) + self.ret_ms.mean
+            else:
+                values_boot = values
+
+            advantages, returns = self._gae_from_values(
+                rewards, values_boot, terminated, mask
+            )
+            if self.args.standardise_returns:
+                self.ret_ms.update(returns)
+                returns = (returns - self.ret_ms.mean) / th.sqrt(self.ret_ms.var)
+                # Actor uses GAE in return space; critic regresses to normalised returns.
+
+        return advantages.detach(), returns.detach()
+
+    def _fit_critic(self, target_returns, batch, mask):
+        v = self.critic(batch)[:, :-1].squeeze(3)
+        td_error = target_returns.detach() - v
+        masked_td_error = td_error * mask
+        loss = (masked_td_error**2).sum() / mask.sum()
+
+        self.critic_optimiser.zero_grad()
+        loss.backward()
+        grad_norm = th.nn.utils.clip_grad_norm_(
+            self.critic_params, self.args.grad_norm_clip
+        )
+        self.critic_optimiser.step()
+
+        running_log = {
+            "critic_loss": [],
+            "critic_grad_norm": [],
+            "td_error_abs": [],
+            "target_mean": [],
+            "q_taken_mean": [],
+        }
+        mask_elems = mask.sum().item()
+        running_log["critic_loss"].append(loss.item())
+        running_log["critic_grad_norm"].append(grad_norm.item())
+        running_log["td_error_abs"].append(
+            (masked_td_error.abs().sum().item() / mask_elems)
+        )
+        running_log["q_taken_mean"].append((v * mask).sum().item() / mask_elems)
+        running_log["target_mean"].append(
+            (target_returns * mask).sum().item() / mask_elems
+        )
+        return masked_td_error, running_log
+
     def train_critic_sequential(self, critic, target_critic, batch, rewards, mask):
         # Optimise critic
         with th.no_grad():
@@ -177,38 +266,7 @@ class PPOLearner:
                 self.ret_ms.var
             )
 
-        running_log = {
-            "critic_loss": [],
-            "critic_grad_norm": [],
-            "td_error_abs": [],
-            "target_mean": [],
-            "q_taken_mean": [],
-        }
-
-        v = critic(batch)[:, :-1].squeeze(3)
-        td_error = target_returns.detach() - v
-        masked_td_error = td_error * mask
-        loss = (masked_td_error**2).sum() / mask.sum()
-
-        self.critic_optimiser.zero_grad()
-        loss.backward()
-        grad_norm = th.nn.utils.clip_grad_norm_(
-            self.critic_params, self.args.grad_norm_clip
-        )
-        self.critic_optimiser.step()
-
-        running_log["critic_loss"].append(loss.item())
-        running_log["critic_grad_norm"].append(grad_norm.item())
-        mask_elems = mask.sum().item()
-        running_log["td_error_abs"].append(
-            (masked_td_error.abs().sum().item() / mask_elems)
-        )
-        running_log["q_taken_mean"].append((v * mask).sum().item() / mask_elems)
-        running_log["target_mean"].append(
-            (target_returns * mask).sum().item() / mask_elems
-        )
-
-        return masked_td_error, running_log
+        return self._fit_critic(target_returns, batch, mask)
 
     def nstep_returns(self, rewards, mask, values, nsteps):
         nstep_values = th.zeros_like(values[:, :-1])

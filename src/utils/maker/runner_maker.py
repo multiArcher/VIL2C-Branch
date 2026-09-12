@@ -20,3 +20,8 @@ class RunnerMaker(Maker):
     def make_parallel(args, logger) -> Runner:
         from runners.parallel_runner import ParallelRunner
         return ParallelRunner(args, logger)
+
+    @staticmethod
+    def make_ymappo(args, logger) -> Runner:
+        from runners.ymappo_runner import YMAPPORunner
+        return YMAPPORunner(args, logger)

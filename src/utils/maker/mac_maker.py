@@ -80,3 +80,8 @@ class MACMaker(Maker):
         """BC-RBC joint block-causal MAC."""
         from controllers.bcrbc_mac import BCRBCMAC
         return BCRBCMAC(*args, **kwargs)
+
+    @staticmethod
+    def make_vil2c_mac(*args, **kwargs) -> MAC:
+        from controllers.vil2c_controller import VIL2CMAC
+        return VIL2CMAC(*args, **kwargs)

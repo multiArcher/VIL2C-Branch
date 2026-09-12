@@ -46,6 +46,11 @@ class LearnerMaker(Maker):
         return PPOLearner(*args, **kwargs)
 
     @staticmethod
+    def make_ymappo_learner(*args, **kwargs) -> 'Learner':
+        from learners.ymappo_learner import YMAPPOLearner
+        return YMAPPOLearner(*args, **kwargs)
+
+    @staticmethod
     def make_pymarl2_q_learner(*args, **kwargs) -> 'Learner':
         """Q-learner from PyMARL2."""
         from learners.pymarl2_q_learner import NQLearner
@@ -90,4 +95,14 @@ class LearnerMaker(Maker):
         """BC-RBC QMIX learner."""
         from learners.bcrbc_learner import BCRBCLearner
         return BCRBCLearner(*args, **kwargs)
+
+    @staticmethod
+    def make_vil2c_learner(*args, **kwargs) -> 'Learner':
+        from learners.vil2c_learner import VIL2CLearner
+        return VIL2CLearner(*args, **kwargs)
+
+    @staticmethod
+    def make_vil2c_ymappo_learner(*args, **kwargs) -> 'Learner':
+        from learners.vil2c_ymappo_learner import VIL2CYMAPPOLearner
+        return VIL2CYMAPPOLearner(*args, **kwargs)
 

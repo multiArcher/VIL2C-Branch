@@ -19,3 +19,8 @@ class ActionSelectorMaker(Maker):
     def make_soft_policies(*args, **kwargs) -> ActionSelector:
         from components.action_selectors.soft_policies_selector import SoftPoliciesSelector
         return SoftPoliciesSelector(*args, **kwargs)
+
+    @staticmethod
+    def make_ymappo_soft_policies(*args, **kwargs) -> ActionSelector:
+        from components.action_selectors.ymappo_action_selector import YMAPPOSoftPoliciesSelector
+        return YMAPPOSoftPoliciesSelector(*args, **kwargs)

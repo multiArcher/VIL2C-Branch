@@ -127,17 +127,21 @@ def run_sequential(args, logger):
     args.state_shape = env_info["state_shape"]
 
     # Default/Base scheme
-    scheme = parse_buffer_scheme(env_info, args.common_reward)
+    scheme = parse_buffer_scheme(env_info, args.common_reward, args)
     groups = {"agents": args.n_agents}
     preprocess = {
         "actions": ("actions_onehot", [OneHot(out_dim=args.n_actions)])
     }
 
+    buffer_seq_len = env_info["episode_limit"] + 1
+    rollout_length = int(getattr(args, "rollout_length", 0) or 0)
+    if rollout_length > 0:
+        buffer_seq_len = max(buffer_seq_len, rollout_length + 1)
     buffer = ReplayBuffer(
         scheme,
         groups,
         args.buffer_size,
-        env_info["episode_limit"] + 1,
+        buffer_seq_len,
         preprocess=preprocess,
         device="cpu" if args.buffer_cpu_only else args.device,
     )
@@ -260,7 +264,15 @@ def run_sequential(args, logger):
             for _ in range(n_test_runs):
                 runner.run(test_mode=True)
 
-        new_winrate = logger.stats["running/test_battle_won_mean"][-1][1]
+        new_winrate = 0.0
+        for _win_key in (
+            "metric/test_battle_won_mean",
+            "running/test_battle_won_mean",
+        ):
+            _win_hist = logger.stats.get(_win_key)
+            if _win_hist:
+                new_winrate = _win_hist[-1][1]
+                break
         best_model = (new_winrate > max_winrate) or (episode == 0)
         
         if best_model is True:
@@ -422,7 +434,7 @@ def args_sanity_check(config, logger):
     return config
 
 
-def parse_buffer_scheme(env_info: dict, common_reward: bool = True):
+def parse_buffer_scheme(env_info: dict, common_reward: bool = True, args=None):
     """Parse buffer scheme from env_info."""
     scheme = {
         "state": {"vshape": env_info["state_shape"], "dtype": torch.float32},
@@ -443,6 +455,22 @@ def parse_buffer_scheme(env_info: dict, common_reward: bool = True):
         scheme["reward"] = {"vshape": (1,)}
     else:
         scheme["reward"] = {"vshape": (env_info["n_agents"],)}
+    if args is not None and getattr(args, "learner", "") in (
+        "ymappo_learner",
+        "vil2c_ymappo_learner",
+    ):
+        hidden = int(getattr(args, "hidden_dim", 64))
+        scheme["active_masks"] = {
+            "vshape": (1,),
+            "group": "agents",
+            "dtype": torch.float32,
+        }
+        scheme["episode_end"] = {"vshape": (1,), "dtype": torch.uint8}
+        scheme["actor_hidden"] = {
+            "vshape": (hidden,),
+            "group": "agents",
+            "dtype": torch.float32,
+        }
     return scheme
 
 

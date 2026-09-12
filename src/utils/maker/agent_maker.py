@@ -11,6 +11,11 @@ class AgentMaker(Maker):
         return RNNAgent(*args, **kwargs)    #TODO: Make old agents a subclass of Agent.
 
     @staticmethod
+    def make_ymappo_rnn(*args, **kwargs) -> Agent:
+        from modules.agents.ymappo_rnn_agent import YMAPPORNNAgent
+        return YMAPPORNNAgent(*args, **kwargs)
+
+    @staticmethod
     def make_rnn_ns(*args, **kwargs) -> Agent:
         from modules.agents.rnn_ns_agent import RNNNSAgent
         return RNNNSAgent(*args, **kwargs)
@@ -109,4 +114,14 @@ class AgentMaker(Maker):
         """Code Kernel agent using attention to merge obs."""
         from modules.agents.kernel_agent import KernelAgent
         return KernelAgent(*args, **kwargs)
-    
+
+    @staticmethod
+    def make_vil2c_agent(*args, **kwargs) -> Agent:
+        from modules.agents.vil2c_agent import VIL2CAgent
+        return VIL2CAgent(*args, **kwargs)
+
+    @staticmethod
+    def make_vil2c_ymappo(*args, **kwargs) -> Agent:
+        from modules.agents.vil2c_ymappo_agent import VIL2CYMAPPOAgent
+        return VIL2CYMAPPOAgent(*args, **kwargs)
+ 
