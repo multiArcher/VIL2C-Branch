@@ -1,6 +1,7 @@
 # VIL2C on Yu et al. MAPPO.
-# Communication delay matches BCRBC: train delay=0, eval uses DelayModel.
-# Fixed delay: comm_gaussian_delay_std=0 and mean=d. Gaussian: mean/std as below.
+# Communication delay is off (mean=0, std=0). Progressive reception stays on
+# for later observation-delay eval; with delay=0 it just receives everyone at slot 0.
+# To restore BCRBC-style eval comm delay: set mean/std > 0.
 
 action_selector: "ymappo_soft_policies"
 mask_before_softmax: True
@@ -56,11 +57,10 @@ test_greedy: True
 test_nepisode: 32
 t_max: 6000000
 
-# Communication: BCRBC delay *distribution* (train 0, eval gaussian/fixed).
-# VIL2C progressive reception is on. ResoNet/Shannon latency is off.
+# Communication delay off; progressive reception kept. ResoNet is off.
 comm_delay_type: gaussian
-comm_gaussian_delay_mean: 1.0
-comm_gaussian_delay_std: 1.0
+comm_gaussian_delay_mean: 0.0
+comm_gaussian_delay_std: 0.0
 comm_max_delay: 16
 use_progressive: True
 max_wait_steps: 3

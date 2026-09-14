@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Run from the project root with marl_stable activated; inherit SC2PATH.
 # Cluster: job.sh should srun this file (or vil2c_ymappo.local.sh).
-# VIL2C on YMAPPO, SMAC 5m_vs_6m: 8 envs x 400-step rollouts, t_max=6e6.
-# Comm delay lives in the alg yaml (train 0, eval gaussian); env is sc2, not delayed_sc2.
+# VIL2C on YMAPPO, SMAC 5m_vs_6m, t_max=6e6.
+# No comm delay (mean/std=0). Progressive reception stays on.
+# Env is sc2, not delayed_sc2.
 
 EXPERIMENT_NAME=vil2c_ymappo_5m_vs_6m
 MAP_NAME=5m_vs_6m
@@ -24,4 +25,6 @@ python -u src/main.py --config=vil2c_ymappo --env-config=sc2 with \
     use_cuda=True \
     test_nepisode=32 test_interval=50000 log_interval=50000 \
     runner_log_interval=10000 learner_log_interval=10000 \
-    save_model_interval=50000 t_max="$T_MAX" "$@"
+    save_model_interval=50000 t_max="$T_MAX" \
+    comm_gaussian_delay_mean=0.0 comm_gaussian_delay_std=0.0 \
+    use_progressive=True "$@"
