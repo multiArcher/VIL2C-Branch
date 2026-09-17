@@ -229,7 +229,8 @@ def run_sequential(args, logger):
         postfix={"ep": 0},
         file=tqdm_output,
     )
-    max_winrate = 0
+    best_score = float("-inf")
+    best_model_path = Path(args.local_results_path) / "models" / args.unique_token / "best_model"
     last_improvement_step = 0
 
     while runner.t_env <= args.t_max:
@@ -264,28 +265,30 @@ def run_sequential(args, logger):
             for _ in range(n_test_runs):
                 runner.run(test_mode=True)
 
-        new_winrate = 0.0
-        for _win_key in (
+        new_score = None
+        for metric_key in (
             "metric/test_battle_won_mean",
             "running/test_battle_won_mean",
+            "metric/test_return_mean",
+            "metric/test_total_return_mean",
         ):
-            _win_hist = logger.stats.get(_win_key)
-            if _win_hist:
-                new_winrate = _win_hist[-1][1]
+            metric_history = logger.stats.get(metric_key)
+            if metric_history:
+                new_score = metric_history[-1][1]
                 break
-        best_model = (new_winrate > max_winrate) or (episode == 0)
+        best_model = new_score is not None and new_score > best_score
         
-        if best_model is True:
+        if best_model:
             model_save_dir = Path(args.local_results_path) / "models" / args.unique_token
             best_model_path = model_save_dir / "best_model"
             best_model_path.mkdir(parents=True, exist_ok=True)
             learner.save_models(best_model_path)
             progress_bar.clear()
             logger.console_logger.info(
-                f"Best model updated, winrate: {max_winrate} -> {new_winrate}"
+                f"Best model updated, {metric_key}: {best_score} -> {new_score}"
             )
             last_improvement_step = runner.t_env
-            max_winrate = new_winrate
+            best_score = new_score
 
             best_model_full_model_path = model_save_dir / "best_model_full_model"
             best_model_full_model_path.mkdir(parents=True, exist_ok=True)

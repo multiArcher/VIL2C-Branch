@@ -1,0 +1,23 @@
+env: delayed_mpe
+common_reward: True
+reward_scalarisation: mean
+
+env_args:
+  map_name: simple_spread_v3
+  time_limit: 25
+  seed: null
+  render_mode: null
+  scenario_args: {}
+  delay_type: gaussian
+  delay_mean: 1.0
+  delay_std: 1.0
+  max_delay: 2
+  delay_per_agent: True
+
+test_greedy: True
+test_nepisode: 32
+test_interval: 10000
+log_interval: 10000
+runner_log_interval: 10000
+learner_log_interval: 10000
+t_max: 2000000

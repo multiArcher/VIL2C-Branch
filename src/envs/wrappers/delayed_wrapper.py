@@ -48,14 +48,14 @@ class DelayedObservationWrapper(MultiAgentEnv):
         self._max_t = self.episode_limit + 1
 
         self._training = True
-        # self._time = 0  # Moved to property
+        self._time = 0
         self._current_obs: list[np.ndarray] = []
         self._current_delays = np.zeros(self.n_agents, dtype=np.int64)
         self._current_generation_times = np.zeros(self.n_agents, dtype=np.int64)
 
     @property
     def episode_timestep(self):
-        return self.env.env._episode_steps
+        return self._time
 
     @property
     def training(self) -> bool:
@@ -69,14 +69,14 @@ class DelayedObservationWrapper(MultiAgentEnv):
         fresh_obs, info = self.env.reset(seed=seed, options=options)
         # if seed is not None:
             # torch.manual_seed(seed)
-        # self._time = 0
+        self._time = 0
         self.delay_model.reset()
         self._push_and_refresh(fresh_obs)
         return self.get_obs(), info
 
     def step(self, actions):
         obss, reward, terminated, truncated, info = self.env.step(actions)
-        # self._time += 1
+        self._time += 1
         self._push_and_refresh(obss)
         return self.get_obs(), reward, terminated, truncated, info
 

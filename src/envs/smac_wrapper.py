@@ -75,4 +75,15 @@ class SMACWrapper(MultiAgentEnv):
         return self.env.get_env_info()
 
     def get_stats(self):
+        # Fixed-length runners can request stats before any episode finishes.
+        # Upstream SMAC divides battles_won by battles_game without a zero guard.
+        if self.env.battles_game == 0:
+            return {
+                "battles_won": self.env.battles_won,
+                "battles_game": 0,
+                "battles_draw": self.env.timeouts,
+                "win_rate": 0.0,
+                "timeouts": self.env.timeouts,
+                "restarts": self.env.force_restarts,
+            }
         return self.env.get_stats()

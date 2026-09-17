@@ -1,5 +1,13 @@
 # Extended Python MARL framework - EPyMARL
 
+## MPE support in this branch
+
+MPE2 is available through `--env-config=mpe` and `--env-config=delayed_mpe`.
+Install with `python -m pip install -r mpe_requirements.txt`, then run
+`python src/main.py --config=vil2c_mappo --env-config=mpe with seed=1`.
+See [MPE usage and validation](docs/mpe_usage.md) for scenario parameters,
+VIL2C-YMAPPO, observation delays, and smoke-test commands.
+
 EPyMARL is  an extension of [PyMARL](https://github.com/oxwhirl/pymarl), and includes
 - **New!** Support for training in environments with individual rewards for all agents (for all algorithms that support such settings)
 - **New!** Updated EPyMARL to use maintained [Gymnasium](https://gymnasium.farama.org/index.html) library instead of deprecated OpenAI Gym version 0.21.

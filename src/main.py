@@ -151,6 +151,18 @@ if __name__ == "__main__":
     config_dict = recursive_dict_update(config_dict, env_config)
     config_dict = recursive_dict_update(config_dict, alg_config)
 
+    # Scenario kwargs differ across MPE tasks. Register explicitly supplied keys
+    # before Sacred validates updates; Sacred still parses their actual values.
+    if config_dict["env"] in ("mpe", "delayed_mpe"):
+        prefix = "env_args.scenario_args."
+        for param in params:
+            key, separator, _ = param.partition("=")
+            if separator and key.startswith(prefix):
+                scenario_key = key[len(prefix):]
+                if not scenario_key.isidentifier():
+                    raise ValueError(f"Invalid MPE scenario parameter: {scenario_key}")
+                config_dict["env_args"]["scenario_args"].setdefault(scenario_key, None)
+
     # endregion
 
     # Generate unique token.

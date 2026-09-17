@@ -15,9 +15,9 @@ critic_type: "ymappo_critic"
 agent_output_type: "pi_logits"
 use_rnn: True
 
-batch_size_run: 8
-batch_size: 8
-buffer_size: 8
+batch_size_run: 4
+batch_size: 4
+buffer_size: 4
 sample_times_per_run: 1
 rollout_length: 400
 data_chunk_length: 10
