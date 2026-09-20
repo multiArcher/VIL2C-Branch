@@ -1,5 +1,12 @@
 # Extended Python MARL framework - EPyMARL
 
+## Frozen-model observation-delay evaluation
+
+Evaluate one trained VIL2C SMAC or MPE checkpoint across observation delays without
+retraining using `scripts/eval_scripts/evaluate_obs_delay.py`.
+See [the evaluation guide](docs/observation_delay_evaluation.md) for MMM2 commands,
+checkpoint selection, delay semantics, and CSV outputs.
+
 ## MPE support in this branch
 
 MPE2 is available through `--env-config=mpe` and `--env-config=delayed_mpe`.

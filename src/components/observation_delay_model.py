@@ -5,7 +5,7 @@ import torch
 
 class ObservationDelayModel:
     """
-    Applies Gaussian observation delay at the agent input boundary.
+    Applies Gaussian, fixed, or discrete uniform delay at the agent input boundary.
 
     The replay buffer keeps true observations. This model only changes which
     historical observation is fed to the agent for a requested decision time.
@@ -22,6 +22,20 @@ class ObservationDelayModel:
         self.delay_mean: float = getattr(args, "obs_gaussian_delay_mean", 0.0)
         self.delay_std: float = max(0.0, getattr(args, "obs_gaussian_delay_std", 0.0))
         self.discretization: str = getattr(args, "obs_delay_discretization", "round")
+        self.delay_type = getattr(args, "obs_delay_type", "gaussian")
+        self.fixed_delay = getattr(args, "obs_fixed_delay", 0)
+        self.uniform_min = getattr(args, "obs_uniform_delay_min", 0)
+        self.uniform_max = getattr(args, "obs_uniform_delay_max", 0)
+        if self.delay_type not in ("gaussian", "fixed", "uniform"):
+            raise ValueError(f"Unknown observation delay type: {self.delay_type}")
+        if self.delay_type == "fixed":
+            if self.fixed_delay < 0 or int(self.fixed_delay) != self.fixed_delay:
+                raise ValueError("Fixed observation delay must be a nonnegative integer")
+        if self.delay_type == "uniform":
+            if not (0 <= self.uniform_min <= self.uniform_max) or any(
+                int(x) != x for x in (self.uniform_min, self.uniform_max)
+            ):
+                raise ValueError("Uniform observation delay requires integer 0 <= min <= max")
 
         self.last_delays: torch.Tensor | None = None
         self.last_source_times: torch.Tensor | None = None
@@ -33,7 +47,7 @@ class ObservationDelayModel:
             training: bool,
         ) -> torch.Tensor:
         """
-        Return observations for time slice t after per-agent Gaussian delay.
+        Return observations for time slice t after per-agent observation delay.
 
         Args:
             observations: [B, T_total, N, obs_dim], true observations.
@@ -76,6 +90,11 @@ class ObservationDelayModel:
         return self.apply_train if training else self.apply_test
 
     def _sample_delays(self, batch_size: int, time_size: int, device: torch.device | str) -> torch.Tensor:
+        shape = (batch_size, time_size, self.n_agents)
+        if self.delay_type == "fixed":
+            return torch.full(shape, int(self.fixed_delay), dtype=torch.long, device=device)
+        if self.delay_type == "uniform":
+            return torch.randint(int(self.uniform_min), int(self.uniform_max) + 1, shape, device=device)
         if self.delay_std == 0.0:
             delay_sample = torch.full(
                 (batch_size, time_size, self.n_agents),

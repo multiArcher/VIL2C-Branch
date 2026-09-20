@@ -14,6 +14,7 @@ import torch as th
 import torch.nn.functional as F
 
 from components.delay_model import DelayModel
+from components.observation_delay_model import ObservationDelayModel
 from controllers.mac import MAC
 from utils.maker import AgentMaker, ActionSelectorMaker
 
@@ -66,6 +67,7 @@ class VIL2CMAC(MAC):
         input_shape = self._get_input_shape(scheme)
         self._build_agents(input_shape)
         self.action_selector = ActionSelectorMaker.make(args.action_selector, args)
+        self.observation_delay_model = ObservationDelayModel(args)
 
         delay_type = getattr(args, "comm_delay_type", "gaussian")
         if delay_type == "fixed":
@@ -92,7 +94,7 @@ class VIL2CMAC(MAC):
         )
 
     def forward(self, ep_batch, t, test_mode=False, **kwargs):
-        agent_inputs = self._build_inputs(ep_batch, t)
+        agent_inputs = self._build_inputs(ep_batch, t, test_mode=test_mode)
         avail_actions = ep_batch["avail_actions"][:, t]
         bs = ep_batch.batch_size
         n = self.n_agents
@@ -207,9 +209,13 @@ class VIL2CMAC(MAC):
     def _build_agents(self, input_shape):
         self.agent = AgentMaker.make(self.args.agent, input_shape, self.args)
 
-    def _build_inputs(self, batch, t):
+    def _build_inputs(self, batch, t, test_mode=None):
         bs = batch.batch_size
-        inputs = [batch["obs"][:, t]]
+        training = self.training if test_mode is None else not test_mode
+        obs = self.observation_delay_model.apply(
+            batch["obs"], slice(t, t + 1), training=training
+        ).squeeze(1)
+        inputs = [obs]
         if self.args.obs_last_action:
             if t == 0:
                 inputs.append(th.zeros_like(batch["actions_onehot"][:, t]))
