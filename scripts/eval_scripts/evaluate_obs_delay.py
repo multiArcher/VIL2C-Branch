@@ -77,7 +77,14 @@ def resolve_delay_grid(parser, opts):
 def make_config(training, checkpoint, mean, std, seed, episodes, batch_size, device, discretization,
                 delay_type="gaussian"):
     config = copy.deepcopy(training)
-    if config.get("mac") != "vil2c_mac" or config.get("env") not in ("sc2", "mpe"):
+    if config["env"] in ("delayed_sc2", "delayed_mpe"):
+        config["env"] = config["env"].removeprefix("delayed_")
+        for key in (
+            "delay_type", "delay_mean", "delay_std",
+            "max_delay", "delay_per_agent", "delay",
+        ):
+            config["env_args"].pop(key, None)
+    if config.get("mac") != "vil2c_mac" or config.get("env") not in ("sc2", "mpe", "delayed_sc2", "delayed_mpe"):
         raise ValueError("This evaluator supports VIL2C on plain sc2 or mpe (no stacked delay wrapper)")
     if training.get("obs_delay_enabled", False) and training.get("obs_delay_apply_train", False):
         raise ValueError("Training config enables observation delay during training")

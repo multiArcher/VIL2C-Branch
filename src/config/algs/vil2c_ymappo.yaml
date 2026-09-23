@@ -15,9 +15,9 @@ critic_type: "ymappo_critic"
 agent_output_type: "pi_logits"
 use_rnn: True
 
-batch_size_run: 4
-batch_size: 4
-buffer_size: 4
+batch_size_run: 16
+batch_size: 16
+buffer_size: 16
 sample_times_per_run: 1
 rollout_length: 400
 data_chunk_length: 10
@@ -55,7 +55,7 @@ q_nstep: 1
 
 test_greedy: True
 test_nepisode: 32
-t_max: 6000000
+t_max: 10000000
 
 # Communication delay off; progressive reception kept. ResoNet is off.
 comm_delay_type: gaussian
