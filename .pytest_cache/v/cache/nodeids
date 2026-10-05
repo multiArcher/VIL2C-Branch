@@ -1,0 +1,13 @@
+[
+  "tests/test_delay_study.py::test_condition_grid_matches_epymarl",
+  "tests/test_delay_study.py::test_evaluation_delay_matches_packet_arrival",
+  "tests/test_delay_study.py::test_mpe_grid_uses_its_own_delays",
+  "tests/test_delay_study.py::test_offline_figures",
+  "tests/test_mpe_return_scale.py::test_colormap_runs_from_blue_to_red",
+  "tests/test_mpe_return_scale.py::test_colormap_runs_from_pale_orange_to_deep_orange",
+  "tests/test_mpe_return_scale.py::test_colormap_uses_each_swatch",
+  "tests/test_mpe_return_scale.py::test_longer_episode_scales_the_same_step_range",
+  "tests/test_mpe_return_scale.py::test_mean_reward_is_the_per_agent_average",
+  "tests/test_mpe_return_scale.py::test_spread_and_tag_use_fixed_anchors",
+  "tests/test_mpe_return_scale.py::test_spread_uses_the_same_limits_for_every_algorithm"
+]

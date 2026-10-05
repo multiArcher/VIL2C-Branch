@@ -2,10 +2,10 @@
 
 ## Frozen-model observation-delay evaluation
 
-Evaluate one trained VIL2C SMAC or MPE checkpoint across observation delays without
-retraining using `scripts/eval_scripts/evaluate_obs_delay.py`.
-See [the evaluation guide](docs/observation_delay_evaluation.md) for MMM2 commands,
-checkpoint selection, delay semantics, and CSV outputs.
+Evaluate one no-delay checkpoint across the full delay grid (fixed, Gaussian,
+uniform, mixture, periodic, and Markov) with
+`scripts/eval_scripts/delay_study_template.py`. See
+[the evaluation guide](docs/observation_delay_evaluation.md).
 
 ## MPE support in this branch
 

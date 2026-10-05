@@ -53,7 +53,7 @@ class ParallelRunner(Runner):
         self.ps = [
             Process(
                 target=env_worker,
-                args=(worker_conn, CloudpickleWrapper(partial(env_fn, **env_arg))),
+                args=(worker_conn, CloudpickleWrapper(partial(env_fn, **env_arg)), env_arg["seed"]),
             )
             for env_arg, worker_conn in zip(env_args, self.worker_conns)
         ]
@@ -77,6 +77,7 @@ class ParallelRunner(Runner):
         self.test_stats = {}
 
         self.log_train_stats_t = -100000
+        self.diagnostics = None
 
     def setup(self, scheme, groups, preprocess, mac):
         self.new_batch = partial(
@@ -95,6 +96,11 @@ class ParallelRunner(Runner):
 
     def get_env_info(self):
         return self.env_info
+
+    def get_diagnostic_data(self, active):
+        for index in active:
+            self.parent_conns[index].send(("get_diagnostic_data", None))
+        return [self.parent_conns[index].recv() for index in active]
 
     def save_replay(self):
         self.parent_conns[0].send(("save_replay", None))
@@ -142,6 +148,7 @@ class ParallelRunner(Runner):
                 np.zeros(self.args.n_agents) for _ in range(self.batch_size)
             ]
         episode_lengths = [0 for _ in range(self.batch_size)]
+        episode_wins = [False for _ in range(self.batch_size)]
         self.mac.init_hidden(batch_size=self.batch_size)
         terminated = [False for _ in range(self.batch_size)]
         envs_not_terminated = [
@@ -166,6 +173,10 @@ class ParallelRunner(Runner):
             self.batch.update(
                 actions_chosen, bs=envs_not_terminated, ts=self.t, mark_filled=False
             )
+
+            if test_mode and self.diagnostics is not None:
+                active = [i for i in envs_not_terminated if not terminated[i]]
+                self.diagnostics.record(self, active)
 
             # Send actions to each env
             action_idx = 0
@@ -205,6 +216,7 @@ class ParallelRunner(Runner):
                     env_terminated = False
                     if data["terminated"]:
                         final_env_infos.append(data["info"])
+                        episode_wins[idx] = bool(data["info"].get("battle_won", False))
                     if data["terminated"] and not data["info"].get(
                         "episode_limit", False
                     ):
@@ -263,6 +275,9 @@ class ParallelRunner(Runner):
 
         cur_returns.extend(episode_returns)
 
+        if test_mode and self.diagnostics is not None:
+            self.diagnostics.finish(episode_returns, episode_lengths, episode_wins)
+
         n_test_runs = (
             max(1, self.args.test_nepisode // self.batch_size) * self.batch_size
         )
@@ -311,17 +326,22 @@ class ParallelRunner(Runner):
         stats.clear()
 
 
-def env_worker(remote, env_fn):
+def env_worker(remote, env_fn, seed):
+    import torch
+    np.random.seed(int(seed))
+    torch.manual_seed(int(seed))
     # Make environment
     env = env_fn.x()
     env_info = env.get_env_info()
     env_t = 0
+    final_info = {}
     while True:
         cmd, data = remote.recv()
         if cmd == "step":
             actions = data
             # Take a step in the environment
             _, reward, terminated, truncated, step_info = env.step(actions)
+            final_info = step_info
             env_t += 1
             terminated = terminated or truncated
             # Return the observations, avail_actions and state to make the next action
@@ -349,6 +369,7 @@ def env_worker(remote, env_fn):
                 env.training = data
             env.reset()
             env_t = 0
+            final_info = {}
             delay_data = get_obs_delay_data(env, env_info["n_agents"], env_t)
             remote.send(
                 {
@@ -368,6 +389,21 @@ def env_worker(remote, env_fn):
             remote.send(env.get_env_info())
         elif cmd == "get_stats":
             remote.send(env.get_stats())
+        elif cmd == "get_final_info":
+            remote.send(final_info)
+        elif cmd == "get_diagnostic_data":
+            sampled = env.delay_model._cache_arrival[0, env_t] - env_t
+            remote.send({
+                "observations": env.env.get_obs(),
+                "sampled_delays": sampled.long().tolist(),
+                "regime": getattr(env.delay_model, "regime", None),
+                "regime_age": getattr(env.delay_model, "regime_age", None),
+                "clipped_count": getattr(env.delay_model, "clipped_count", 0),
+            })
+        elif cmd == "set_evaluation_delay":
+            from components.evaluation_delay import EvaluationDelay
+            env.delay_model = EvaluationDelay(data["condition"], data["seed"])
+            remote.send(True)
         elif cmd == "render":
             env.render()
         elif cmd == "save_replay":
