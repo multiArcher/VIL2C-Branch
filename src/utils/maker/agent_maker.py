@@ -6,6 +6,11 @@ class AgentMaker(Maker):
     """Factory class for creating Agents."""
 
     @staticmethod
+    def make_dama_agent(*args, **kwargs):
+        from modules.agents.dama_agent import DAMAAgent
+        return DAMAAgent(*args, **kwargs)
+
+    @staticmethod
     def make_rnn(*args, **kwargs) -> Agent:
         from modules.agents.rnn_agent import RNNAgent
         return RNNAgent(*args, **kwargs)    #TODO: Make old agents a subclass of Agent.
@@ -124,4 +129,3 @@ class AgentMaker(Maker):
     def make_vil2c_ymappo(*args, **kwargs) -> Agent:
         from modules.agents.vil2c_ymappo_agent import VIL2CYMAPPOAgent
         return VIL2CYMAPPOAgent(*args, **kwargs)
- 

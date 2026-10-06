@@ -7,6 +7,11 @@ class RunnerMaker(Maker):
     """Factory class for creating runners."""
 
     @staticmethod
+    def make_dama_parallel(args, logger) -> Runner:
+        from runners.dama_parallel_runner import DAMAParallelRunner
+        return DAMAParallelRunner(args, logger)
+
+    @staticmethod
     def make_episode(args, logger) -> Runner:
         from runners.episode_runner import EpisodeRunner
         return EpisodeRunner(args, logger)

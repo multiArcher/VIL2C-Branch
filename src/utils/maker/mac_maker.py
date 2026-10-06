@@ -6,6 +6,11 @@ class MACMaker(Maker):
     """Factory class for creating Controllers."""
 
     @staticmethod
+    def make_dama_mac(*args, **kwargs):
+        from controllers.dama_controller import DAMAMAC
+        return DAMAMAC(*args, **kwargs)
+
+    @staticmethod
     def make_basic_mac(*args, **kwargs) -> MAC:
         from controllers.basic_controller import BasicMAC
         return BasicMAC(*args, **kwargs)

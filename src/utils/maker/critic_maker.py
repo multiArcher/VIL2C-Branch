@@ -6,6 +6,11 @@ class CriticMaker(Maker):
     """Factory class for creating Critic Networks."""
 
     @staticmethod
+    def make_dama_critic(*args, **kwargs):
+        from modules.critics.dama_critic import DAMACritic
+        return DAMACritic(*args, **kwargs)
+
+    @staticmethod
     def make_coma_critic(*args, **kwargs) -> Module:
         from modules.critics.coma import COMACritic
         return COMACritic(*args, **kwargs)

@@ -4,6 +4,11 @@ from learners.learner import Learner
 class LearnerMaker(Maker):
     """Factory class for creating various types of learners."""
 
+    @staticmethod
+    def make_dama_learner(*args, **kwargs):
+        from learners.dama_learner import DAMALearner
+        return DAMALearner(*args, **kwargs)
+
     # TODO, migrate Multiple Learners to Learner.
     @staticmethod
     def make_q_learner(*args, **kwargs) -> 'Learner':
